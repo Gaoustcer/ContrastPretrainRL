@@ -12,7 +12,11 @@ class Trajectory(object):
         self.observations = observations
         self.actions = actions
         self.totallength = len(self.actions)
-    
+
+    def sampleactions(self):
+        index = np.random.randint(0,self.totallength,(self.seqlen,))
+        return self.actions[index]
+
     def sample(self,length = None):
         if length == None:
             length = self.seqlen
