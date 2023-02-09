@@ -22,9 +22,11 @@ class infonce(nn.Module):
         '''
         if query.dim() == 1:
             query = query.unsqueeze(0)
-        if positive.dim() == 1:
-            positive = positive.unsqueeze(0)
+        if positivekeys.dim() == 1:
+            positivekeys = positivekeys.unsqueeze(0)
+        
         query = self.querytokeytransformer(query)
+        print(query.shape,positivekeys.shape)
         assert query.shape == positivekeys.shape
         # query = self.querytokeytransformer(query)
         similaritytrans = torch.mm(query,positivekeys.T)
