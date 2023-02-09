@@ -24,5 +24,5 @@ class Stateactiontransformer(nn.Module):
         return self.transformer(src = stateactionsequence,
                                 tgt = stateactionsequence,
                                 src_mask = mask,
-                                tgt_mask = mask)[-1,:]
+                                tgt_mask = mask)[:,-1,:]
 

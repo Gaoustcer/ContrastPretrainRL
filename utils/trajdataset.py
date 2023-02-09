@@ -27,7 +27,8 @@ class Trajectory(object):
         positive actions a_t
         '''
         return self.observations[startentry:startentry + length,:],\
-            self.actions[startentry:startentry + length,:]
+            self.actions[startentry:startentry + length,:],\
+            self.sampleactions()
 
 
 class Trajdataset(Dataset):
@@ -51,10 +52,18 @@ class Trajdataset(Dataset):
         return len(self.dataset)
 
     def __getitem__(self,index):
-        return self.dataset[index]
+        return self.dataset[index].sample()
     
 if __name__ == "__main__":
     data = Trajdataset(path="../dataset.pkl",device='cpu')
+    from torch.utils.data import DataLoader
+    loader = DataLoader(data,batch_size=16)
+    for instances in loader:
+        print(type(instances))
+        # print(instances[0].shape)
+        for instance in instances:
+            print(instance.shape)
+        exit()
     # print(data[0]['actions'].shape,data[0]['observations'].shape)
     print(data[0].observations.shape)
     traj = data[0]
