@@ -4,3 +4,4 @@ logs
 *.err
 *.out
 *.sh
+./tutorial

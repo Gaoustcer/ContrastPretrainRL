@@ -3,7 +3,7 @@ from train.train import ContrastivePredictiveCoding
 if __name__ == "__main__":
     # CPC = ContrastivePredictiveCoding()
     # print("Create Over")
-    CPC = ContrastivePredictiveCoding(device='cuda',EPOCH=1024 * 32 )
+    CPC = ContrastivePredictiveCoding(path = "./logs/CPCtrajpair",device='cuda',EPOCH=1024 * 32,trajcompare=True)
     CPC.train()
     # dataset = Trajdataset(device="cuda")
     # for traj in dataset:

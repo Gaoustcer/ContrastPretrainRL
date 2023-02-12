@@ -1,5 +1,5 @@
 from utils.infonce import infonce
-from utils.trajdataset import Trajdataset
+from utils.trajdataset import Trajdataset,WholeTraj
 from model.actionstateencoder import ActionStateencoder
 from model.stateactiontransformer import Stateactiontransformer
 from utils.config import *
@@ -17,9 +17,13 @@ class ContrastivePredictiveCoding(object):
                  device = "cpu",
                  embeddingdim = 32,
                  batch_size = 16,
-                 EPOCH = 1024) -> None:
+                 EPOCH = 1024,
+                 negativesamples = 1024,
+                 trajcompare = False) -> None:
+        self.negativesamples = negativesamples
         self.writer = SummaryWriter(path)
         self.env = gym.make(envname)
+        self.wholetraj = WholeTraj()
         self.actiondim = len(self.env.action_space.sample())
         self.statedim = len(self.env.observation_space.sample())
         self.lossfunction = infonce(querydim=embeddingdim,keydim=embeddingdim).to(device)
@@ -31,7 +35,8 @@ class ContrastivePredictiveCoding(object):
             adim=self.statedim,
             embeddim=embeddingdim
         ).to(device)
-        self.dataset = Trajdataset(device=device)
+        self.trajcompare = trajcompare
+        self.dataset = Trajdataset(device=device,comparewithintraj=trajcompare)
         self.loader = DataLoader(self.dataset,batch_size=batch_size)
         self.batchsize = batch_size
         self.transformer = Stateactiontransformer(
@@ -49,9 +54,43 @@ class ContrastivePredictiveCoding(object):
             ),lr = 0.0001
         )
     
+    def samplenegative(self):
+        negativestates = []
+        negativeactions = []
+        for _ in range(self.negativesamples):
+            from random import randint
+            index = randint(0,len(self.wholetraj))
+            s,a = self.wholetraj(index)
+            negativestates.append(s)
+            negativeactions.append(a)
+        return torch.stack(negativestates,dim=0),torch.stack(negativeactions,dim=0)
+    
+    
     def train(self):
         for epoch in range(self.EPOCH):
-            self.trainanapoch()
+            if self.trajcompare == False:
+                self.trainanapoch()
+            else:
+                self.traintrajectory()
+    def combinestatesactions(self,s_,a_):
+        return torch.concat((s_,a_),dim=-1).reshape(s_.shape[0],2 * s_.shape[1],-1)
+    def traintrajectory(self):
+        for states,actions,positivestates,positiveactions in tqdm(self.loader):
+            statesembedding = self.Stateencoding(states)
+            actionembedding = self.Actionencoding(actions)
+            positiveactionembedding = self.Actionencoding(positiveactions)
+            positivestateembedding = self.Stateencoding(positivestates)
+            sequence = self.combinestatesactions(statesembedding,actionembedding)
+            positivesequence = self.combinestatesactions(positivestateembedding,positiveactionembedding)
+            negativesequence = self.combinestatesactions(self.samplenegative())
+            sequenceembedding = self.transformer(sequence)
+            positivesequenceembedding = self.transformer(positivesequence)
+            negativesequenceembedding = self.transformer(negativesequence).detach()
+            loss = self.lossfunction.forward(sequenceembedding,positivesequenceembedding,negativesequenceembedding)
+            loss.backward()
+            self.writer.add_scalar("loss",loss,self.logid)
+            self.logid += 1
+
     def trainanapoch(self):
         for states,actions,actionssamples in tqdm(self.loader):
             print(states.shape,actions.shape,actionssamples.shape)
