@@ -10,12 +10,15 @@ import gym
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import itertools
+import matplotlib.pyplot as plt
+
 
 class ContrastivePredictiveCoding(object):
     def __init__(self,
                  path = "./logs/CPC",
                  device = "cpu",
                  embeddingdim = 32,
+                 n_head = 8,
                  batch_size = 16,
                  EPOCH = 1024,
                  negativesamples = 1024,
@@ -40,7 +43,7 @@ class ContrastivePredictiveCoding(object):
         self.loader = DataLoader(self.dataset,batch_size=batch_size)
         self.batchsize = batch_size
         self.transformer = Stateactiontransformer(
-            embeddim=embeddingdim
+            embeddim=embeddingdim,nhead=n_head
         ).to(device)
         self.EPOCH = EPOCH
         self.logid = 0
@@ -60,12 +63,14 @@ class ContrastivePredictiveCoding(object):
         for _ in range(self.negativesamples):
             from random import randint
             index = randint(0,len(self.wholetraj))
-            s,a = self.wholetraj(index)
+            s,a = self.wholetraj[index]
             negativestates.append(s)
             negativeactions.append(a)
         return torch.stack(negativestates,dim=0),torch.stack(negativeactions,dim=0)
     
-    
+    def visualize(self):
+        for states,actions,_,_ in tqdm(self.loader):
+
     def train(self):
         for epoch in range(self.EPOCH):
             if self.trajcompare == False:
@@ -75,21 +80,28 @@ class ContrastivePredictiveCoding(object):
     def combinestatesactions(self,s_,a_):
         return torch.concat((s_,a_),dim=-1).reshape(s_.shape[0],2 * s_.shape[1],-1)
     def traintrajectory(self):
+        s_,a_ = self.samplenegative()
+        s_ = self.Stateencoding(s_)
+        a_ = self.Actionencoding(a_)
+        negativesequence = self.combinestatesactions(s_,a_).detach()
         for states,actions,positivestates,positiveactions in tqdm(self.loader):
+            self.optimizer.zero_grad()
             statesembedding = self.Stateencoding(states)
             actionembedding = self.Actionencoding(actions)
             positiveactionembedding = self.Actionencoding(positiveactions)
             positivestateembedding = self.Stateencoding(positivestates)
             sequence = self.combinestatesactions(statesembedding,actionembedding)
             positivesequence = self.combinestatesactions(positivestateembedding,positiveactionembedding)
-            negativesequence = self.combinestatesactions(self.samplenegative())
+            
             sequenceembedding = self.transformer(sequence)
             positivesequenceembedding = self.transformer(positivesequence)
             negativesequenceembedding = self.transformer(negativesequence).detach()
             loss = self.lossfunction.forward(sequenceembedding,positivesequenceembedding,negativesequenceembedding)
+            loss = torch.mean(loss)
             loss.backward()
             self.writer.add_scalar("loss",loss,self.logid)
             self.logid += 1
+            self.optimizer.step()
 
     def trainanapoch(self):
         for states,actions,actionssamples in tqdm(self.loader):
