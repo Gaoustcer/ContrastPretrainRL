@@ -11,6 +11,8 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import itertools
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import os
 
 
 class ContrastivePredictiveCoding(object):
@@ -23,6 +25,13 @@ class ContrastivePredictiveCoding(object):
                  EPOCH = 1024,
                  negativesamples = 1024,
                  trajcompare = False) -> None:
+
+        self.figure = plt.figure()
+        self.ax1 = plt.axes(projection = '3d')
+        picturepath = os.path.join(path,"distributionoftraj")
+        if os.path.exists(picturepath) == False:
+            os.mkdir(picturepath)
+
         self.negativesamples = negativesamples
         self.writer = SummaryWriter(path)
         self.env = gym.make(envname)
@@ -70,6 +79,12 @@ class ContrastivePredictiveCoding(object):
     
     def visualize(self):
         for states,actions,_,_ in tqdm(self.loader):
+            statesembedding = self.Stateencoding(states)
+            actionemebdding = self.Actionencoding(actions)
+            sequenceembedding = self.combinestatesactions(
+                statesembedding,actionemebdding)
+            sequencetrans = self.transformer(sequenceembedding)
+            
 
     def train(self):
         for epoch in range(self.EPOCH):

@@ -21,7 +21,7 @@ class Stateactiontransformer(nn.Module):
     def forward(self,stateactionsequence):
         device = next(self.parameters()).device
         length = stateactionsequence.shape[1]
-        print(stateactionsequence.shape)
+        # print(stateactionsequence.shape)
         mask = torch.tril(torch.ones((length,length)).to(device),diagonal=0)
         return self.transformer(src = stateactionsequence,
                                 tgt = stateactionsequence,
