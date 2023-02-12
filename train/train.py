@@ -54,6 +54,7 @@ class ContrastivePredictiveCoding(object):
             self.trainanapoch()
     def trainanapoch(self):
         for states,actions,actionssamples in tqdm(self.loader):
+            print(states.shape,actions.shape,actionssamples.shape)
             self.optimizer.zero_grad()
             statesembedding = self.Stateencoding(states)
             actionsembedding = self.Actionencoding(actions)
@@ -66,7 +67,7 @@ class ContrastivePredictiveCoding(object):
             sequencedata = torch.concat(
                 (statesembedding,actionsembedding),
                 dim=-1
-            ).reshape(self.batchsize,-1,self.embeddingdim)[:,:-1,:]
+            ).reshape(statesembedding.shape[0],-1,self.embeddingdim)[:,:-1,:]
             sequenceembedding = self.transformer(sequencedata)
             '''
             sequenceembedding is [batch_size,embed_dim]
