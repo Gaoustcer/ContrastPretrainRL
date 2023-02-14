@@ -44,13 +44,15 @@ echo "$(hostnamectl)"
 #- Load environments
 source /tools/module_env.sh
 module list                       # list modules loaded
-
+module purge
 ##- Tools
 module load cluster-tools/v1.0
 module load slurm-tools/v1.0
 module load cmake/3.15.7
 module load git/2.17.1
 module load vim/8.1.2424
+# module load conda
+
 
 ##- language
 module load python3/3.6.8
@@ -60,7 +62,8 @@ module load cuda-cudnn/11.1-8.1.1
 
 ##- virtualenv
 # source xxxxx/activate
-
+source /home/S/gaohaihan/miniconda3/bin/activate RLGMM
+echo "System information"
 echo $(module list)              # list modules loaded
 echo $(which gcc)
 echo $(which python)
@@ -80,5 +83,6 @@ echo "Use GPU ${CUDA_VISIBLE_DEVICES}"                              # which gpus
 sleep 10s
 echo "Hello world"
 nvidia-smi
+python main.py
 #- End
 echo "Job end at $(date "+%Y-%m-%d %H:%M:%S")"

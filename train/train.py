@@ -24,6 +24,7 @@ class ContrastivePredictiveCoding(object):
                  batch_size = 16,
                  EPOCH = 1024,
                  negativesamples = 1024,
+                 tau = 0.07,
                  trajcompare = False) -> None:
 
         self.figure = plt.figure()
@@ -66,6 +67,7 @@ class ContrastivePredictiveCoding(object):
                 list(self.lossfunction.parameters())
             ),lr = 0.0001
         )
+        self.tau = tau
     
     def samplenegative(self):
         negativestates = []
