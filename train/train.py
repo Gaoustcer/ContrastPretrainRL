@@ -28,12 +28,13 @@ class ContrastivePredictiveCoding(object):
 
         self.figure = plt.figure()
         self.ax1 = plt.axes(projection = '3d')
+        
+        self.negativesamples = negativesamples
+        self.writer = SummaryWriter(path)
         picturepath = os.path.join(path,"distributionoftraj")
         if os.path.exists(picturepath) == False:
             os.mkdir(picturepath)
-
-        self.negativesamples = negativesamples
-        self.writer = SummaryWriter(path)
+        self.picturepath = picturepath
         self.env = gym.make(envname)
         self.wholetraj = WholeTraj()
         self.actiondim = len(self.env.action_space.sample())
@@ -77,14 +78,14 @@ class ContrastivePredictiveCoding(object):
             negativeactions.append(a)
         return torch.stack(negativestates,dim=0),torch.stack(negativeactions,dim=0)
     
-    def visualize(self):
+    def visualize(self,index):
         for states,actions,_,_ in tqdm(self.loader):
             statesembedding = self.Stateencoding(states)
             actionemebdding = self.Actionencoding(actions)
             sequenceembedding = self.combinestatesactions(
                 statesembedding,actionemebdding)
             sequencetrans = self.transformer(sequenceembedding)
-            
+        picture = os.path.join(self.picture)
 
     def train(self):
         for epoch in range(self.EPOCH):

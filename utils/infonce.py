@@ -14,7 +14,7 @@ class infonce(nn.Module):
                 query:torch.Tensor,
                 positivekeys:torch.Tensor,
                 negativekeys:torch.Tensor,
-                tau = 0.17):
+                tau = 0.07):
         '''
         query [N,querydim]
         positivekeys [N,querydim]
