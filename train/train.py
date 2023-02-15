@@ -13,23 +13,29 @@ import itertools
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import os
-
+import torch.nn as nn
 
 class ContrastivePredictiveCoding(object):
     def __init__(self,
                  path = "./logs/CPC",
                  device = "cpu",
                  embeddingdim = 32,
+                 contrastdim = 3,
                  n_head = 8,
                  batch_size = 16,
                  EPOCH = 1024,
                  negativesamples = 1024,
                  tau = 0.07,
-                 trajcompare = False) -> None:
+                 trajcompare = True) -> None:
 
         self.figure = plt.figure()
         self.ax1 = plt.axes(projection = '3d')
-        
+        self.trajtransgformer = nn.Sequential(
+            nn.Linear(embeddingdim,16),
+            nn.ReLU(),
+            nn.Linear(16,contrastdim)
+        ).to(device=device)
+
         self.negativesamples = negativesamples
         self.writer = SummaryWriter(path)
         picturepath = os.path.join(path,"distributionoftraj")
@@ -40,7 +46,7 @@ class ContrastivePredictiveCoding(object):
         self.wholetraj = WholeTraj()
         self.actiondim = len(self.env.action_space.sample())
         self.statedim = len(self.env.observation_space.sample())
-        self.lossfunction = infonce(querydim=embeddingdim,keydim=embeddingdim).to(device)
+        self.lossfunction = infonce(querydim=contrastdim,keydim=contrastdim).to(device)
         self.Actionencoding = ActionStateencoder(
             adim=self.actiondim,
             embeddim=embeddingdim
@@ -64,7 +70,8 @@ class ContrastivePredictiveCoding(object):
                 list(self.Actionencoding.parameters()),
                 list(self.Stateencoding.parameters()),
                 list(self.transformer.parameters()),
-                list(self.lossfunction.parameters())
+                list(self.lossfunction.parameters()),
+                list(self.trajtransgformer.parameters())
             ),lr = 0.0001
         )
         self.tau = tau
@@ -86,15 +93,21 @@ class ContrastivePredictiveCoding(object):
             actionemebdding = self.Actionencoding(actions)
             sequenceembedding = self.combinestatesactions(
                 statesembedding,actionemebdding)
-            sequencetrans = self.transformer(sequenceembedding)
-        picture = os.path.join(self.picture)
+            # sequencetrans = self.transformer(sequenceembedding)
+            sequenceembedding = self.trajtransgformer(self.transformer(sequenceembedding)).detach().to("cpu")
+            self.ax1.scatter3D(sequenceembedding[:,0],sequenceembedding[:,1],sequenceembedding[:,1])
+        picture = os.path.join(self.picture,str(index))
+        plt.savefig(picture)
+        plt.cla()
 
     def train(self):
         for epoch in range(self.EPOCH):
+            # self.visualize(epoch)
             if self.trajcompare == False:
                 self.trainanapoch()
             else:
                 self.traintrajectory()
+            
     def combinestatesactions(self,s_,a_):
         return torch.concat((s_,a_),dim=-1).reshape(s_.shape[0],2 * s_.shape[1],-1)
     def traintrajectory(self):
@@ -104,16 +117,35 @@ class ContrastivePredictiveCoding(object):
         negativesequence = self.combinestatesactions(s_,a_).detach()
         for states,actions,positivestates,positiveactions in tqdm(self.loader):
             self.optimizer.zero_grad()
-            statesembedding = self.Stateencoding(states)
-            actionembedding = self.Actionencoding(actions)
-            positiveactionembedding = self.Actionencoding(positiveactions)
-            positivestateembedding = self.Stateencoding(positivestates)
-            sequence = self.combinestatesactions(statesembedding,actionembedding)
-            positivesequence = self.combinestatesactions(positivestateembedding,positiveactionembedding)
+            '''
+            reconstruct code
+            '''
+            sequenceembedding = self.trajtransgformer(
+                self.transformer(
+                    self.combinestatesactions(
+                        self.Stateencoding(states),self.Actionencoding(actions)
+                    )
+                )
+            )
+            positivesequenceembedding = self.trajtransgformer(
+                self.transformer(
+                    self.combinestatesactions(
+                        self.Stateencoding(positivestates,positiveactions)
+                    )
+                )
+            )
+            negativesequenceembedding = self.trajtransgformer(
+                self.transformer(
+                    self.combinestatesactions(
+                        negativesequence
+                    )
+                )
+            ).detach()
+            '''
+            map them into low dimension, take the idea of SimCLR
+            '''
             
-            sequenceembedding = self.transformer(sequence)
-            positivesequenceembedding = self.transformer(positivesequence)
-            negativesequenceembedding = self.transformer(negativesequence).detach()
+
             loss = self.lossfunction.forward(sequenceembedding,positivesequenceembedding,negativesequenceembedding)
             loss = torch.mean(loss)
             loss.backward()

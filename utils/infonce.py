@@ -26,7 +26,7 @@ class infonce(nn.Module):
             positivekeys = positivekeys.unsqueeze(0)
         
         query = self.querytokeytransformer(query)
-        print(query.shape,positivekeys.shape)
+        # print(query.shape,positivekeys.shape)
         assert query.shape == positivekeys.shape
         # query = self.querytokeytransformer(query)
         similaritytrans = torch.mm(query,positivekeys.T)
