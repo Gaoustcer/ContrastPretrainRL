@@ -26,7 +26,8 @@ class ContrastivePredictiveCoding(object):
                  EPOCH = 1024,
                  negativesamples = 1024,
                  tau = 0.07,
-                 trajcompare = True) -> None:
+                 trajcompare = True,
+                 usemlp = True) -> None:
 
         self.figure = plt.figure()
         self.ax1 = plt.axes(projection = '3d')
@@ -46,7 +47,10 @@ class ContrastivePredictiveCoding(object):
         self.wholetraj = WholeTraj()
         self.actiondim = len(self.env.action_space.sample())
         self.statedim = len(self.env.observation_space.sample())
-        self.lossfunction = infonce(querydim=contrastdim,keydim=contrastdim).to(device)
+        if usemlp:
+            self.lossfunction = infonce(querydim=contrastdim,keydim=contrastdim).to(device)
+        else:
+            self.lossfunction = infonce(querydim=embeddingdim,keydim=embeddingdim).to(device)    
         self.Actionencoding = ActionStateencoder(
             adim=self.actiondim,
             embeddim=embeddingdim
@@ -65,15 +69,27 @@ class ContrastivePredictiveCoding(object):
         self.EPOCH = EPOCH
         self.logid = 0
         self.embeddingdim = embeddingdim
-        self.optimizer = torch.optim.Adam(
-            itertools.chain(
-                list(self.Actionencoding.parameters()),
-                list(self.Stateencoding.parameters()),
-                list(self.transformer.parameters()),
-                list(self.lossfunction.parameters()),
-                list(self.trajtransgformer.parameters())
-            ),lr = 0.0001
-        )
+        self.usemlp = usemlp
+        if self.usemlp:
+            self.optimizer = torch.optim.Adam(
+                itertools.chain(
+                    list(self.Actionencoding.parameters()),
+                    list(self.Stateencoding.parameters()),
+                    list(self.transformer.parameters()),
+                    list(self.lossfunction.parameters()),
+                    list(self.trajtransgformer.parameters())
+                ),lr = 0.0001
+            )
+        else:
+            self.optimizer = torch.optim.Adam(
+                itertools.chain(
+                    list(self.Actionencoding.parameters()),
+                    list(self.Stateencoding.parameters()),
+                    list(self.transformer.parameters()),
+                    list(self.lossfunction.parameters())
+                ),lr = 0.0001
+            )
+            
         self.tau = tau
     
     def samplenegative(self):
@@ -95,14 +111,14 @@ class ContrastivePredictiveCoding(object):
                 statesembedding,actionemebdding)
             # sequencetrans = self.transformer(sequenceembedding)
             sequenceembedding = self.trajtransgformer(self.transformer(sequenceembedding)).detach().to("cpu")
-            self.ax1.scatter3D(sequenceembedding[:,0],sequenceembedding[:,1],sequenceembedding[:,1])
-        picture = os.path.join(self.picture,str(index))
+            self.ax1.scatter3D(sequenceembedding[:,0],sequenceembedding[:,1],sequenceembedding[:,1],s=1,cmap="Blues")
+        picture = os.path.join(self.picturepath,str(index))
         plt.savefig(picture)
         plt.cla()
 
     def train(self):
         for epoch in range(self.EPOCH):
-            # self.visualize(epoch)
+            self.visualize(epoch)
             if self.trajcompare == False:
                 self.trainanapoch()
             else:
@@ -114,33 +130,44 @@ class ContrastivePredictiveCoding(object):
         s_,a_ = self.samplenegative()
         s_ = self.Stateencoding(s_)
         a_ = self.Actionencoding(a_)
-        negativesequence = self.combinestatesactions(s_,a_).detach()
+        negativesequence = self.combinestatesactions(s_,a_)
         for states,actions,positivestates,positiveactions in tqdm(self.loader):
             self.optimizer.zero_grad()
             '''
             reconstruct code
             '''
-            sequenceembedding = self.trajtransgformer(
-                self.transformer(
+            if self.usemlp:
+                sequenceembedding = self.trajtransgformer(
+                    self.transformer(
+                        self.combinestatesactions(
+                            self.Stateencoding(states),self.Actionencoding(actions)
+                        )
+                    )
+                )
+                positivesequenceembedding = self.trajtransgformer(
+                    self.transformer(
+                        self.combinestatesactions(
+                            self.Stateencoding(positivestates),self.Actionencoding(positiveactions)
+                        )
+                    )
+                )
+                negativesequenceembedding = self.trajtransgformer(
+                    self.transformer(
+                        negativesequence
+                    )
+                ).detach()
+            else:
+                sequenceembedding = self.transformer(
                     self.combinestatesactions(
                         self.Stateencoding(states),self.Actionencoding(actions)
                     )
                 )
-            )
-            positivesequenceembedding = self.trajtransgformer(
-                self.transformer(
-                    self.combinestatesactions(
-                        self.Stateencoding(positivestates,positiveactions)
-                    )
+                positivesequenceembedding = self.transformer(
+                        self.combinestatesactions(
+                            self.Stateencoding(positivestates),self.Actionencoding(positiveactions)
+                        )
                 )
-            )
-            negativesequenceembedding = self.trajtransgformer(
-                self.transformer(
-                    self.combinestatesactions(
-                        negativesequence
-                    )
-                )
-            ).detach()
+                negativesequenceembedding = self.transformer(negativesequence).detach()
             '''
             map them into low dimension, take the idea of SimCLR
             '''
