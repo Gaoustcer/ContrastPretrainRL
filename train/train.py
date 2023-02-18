@@ -36,7 +36,7 @@ class ContrastivePredictiveCoding(object):
             nn.ReLU(),
             nn.Linear(16,contrastdim)
         ).to(device=device)
-
+        self.logpath = path
         self.negativesamples = negativesamples
         self.writer = SummaryWriter(path)
         picturepath = os.path.join(path,"distributionoftraj")
@@ -92,6 +92,13 @@ class ContrastivePredictiveCoding(object):
             
         self.tau = tau
     
+    def save(self):
+        modelpath = os.path.join(self.path,"model")
+        if os.path.exists(modelpath) == False:
+            os.mkdir(modelpath)
+        torch.save(self.Actionencoding,os.path.join(modelpath,'actionencoding'))
+        torch.save(self.Stateencoding,os.path.join(modelpath,"stateencoding"))
+        torch.save(self.transformer,os.path.join(modelpath,"transformer"))
     def samplenegative(self):
         negativestates = []
         negativeactions = []
@@ -123,7 +130,7 @@ class ContrastivePredictiveCoding(object):
                 self.trainanapoch()
             else:
                 self.traintrajectory()
-            
+        self.train()            
     def combinestatesactions(self,s_,a_):
         return torch.concat((s_,a_),dim=-1).reshape(s_.shape[0],2 * s_.shape[1],-1)
     def traintrajectory(self):
