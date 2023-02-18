@@ -1,4 +1,4 @@
-from train.train import ContrastivePredictiveCoding
+from train.traincontrast import ContrastivePredictiveCoding
 
 if __name__ == "__main__":
     tau = 0.07
