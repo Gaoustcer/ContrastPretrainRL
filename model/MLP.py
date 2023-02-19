@@ -10,9 +10,13 @@ class MLPblock(nn.Module):
             nn.ReLU(),
             nn.BatchNorm1d(output_dim)
         )
-    
+        self.apply(MLPinit)
     def forward(self,inputs):
         return self.MLP(inputs)
+
+def MLPinit(layer:nn.Linear):
+    if type(layer) == nn.Linear:
+        nn.init.kaiming_uniform_(layer.weight,a = -0.1,b = 0.1)
 
 class MultiMLPblock(nn.Module):
     def __init__(self,input_dim,output_dim,middle_neurons:list) -> None:

@@ -20,7 +20,7 @@ if __name__ == "__main__":
     nhead = 8
     transformerembed = 128
     transformerembeddim = 1024
-    path = f'./log/Siam_nhead={nhead}_embeddim={embeddim}_transformerembed={transformerembed}_transformerembeddim={transformerembeddim}'
+    path = f'./log/Siam_nhead={nhead}_embeddim={embeddim}_transformerembed={transformerembed}_transformerembeddim={transformerembeddim}initnormal_layer'
     trainagent = Siamtrain(path = path,embeddim = embeddim,nhead = nhead,transformerembed = transformerembed,transformerforwarddim = transformerembeddim)
     trainagent.train()
 # if __name__ == "__main__":
