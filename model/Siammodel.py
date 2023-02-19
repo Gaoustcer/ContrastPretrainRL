@@ -26,6 +26,12 @@ class Siam(nn.Module):
         ))
         projection = self.projector(sequenceembedding)
         prediction = self.predictor(projection)
+        '''
+        input [N,L,E] N is the number of sequence
+        sequenceembedding [N,transformerembed]
+        projection [N,embed]
+        prediction [N,embed]
+        '''
         return sequenceembedding,projection,prediction
     
 

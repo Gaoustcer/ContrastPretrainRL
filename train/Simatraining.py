@@ -15,12 +15,26 @@ import os
 
 
 class Siamtrain(object):
-    def __init__(self,path = "./log/Siam") -> None:
+    def __init__(self,path = "./log/Siam",embeddim = 32
+                 ,nhead = 8,transformerembed = 128,
+                 transformerforwarddim = 1024) -> None:
+        '''
+        [N,L,3] + [N,L,11] 
+        -> [N,2L,transformerembed] 
+        -> [N,transformerembed](sequence embedding) 
+        -> [N,embed](projection)
+        -> [N,embed](prediction)
+        '''
         self.EPOCH = EPOCH
         self.env = gym.make(envname)
         adim = len(self.env.action_space.sample())
         sdim = len(self.env.observation_space.sample()) 
-        self.Siam = Siam(actiondim=adim,statedim=sdim).cuda()        
+        self.Siam = Siam(actiondim=adim,
+                         statedim=sdim,
+                         embeddim = embeddim,
+                         nhead = nhead,
+                         transformerembed = transformerembed,
+                         transformerforwarddim = transformerforwarddim).cuda()        
         self.optimizer = Adam(self.Siam.parameters(),lr = lr)
         dataset = Trajdataset(comparewithintraj = True,device = device)
         self.data = DataLoader(dataset,batch_size = Batchsize)
