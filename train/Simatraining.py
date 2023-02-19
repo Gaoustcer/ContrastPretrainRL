@@ -54,6 +54,8 @@ class Siamtrain(object):
     
     def validate(self,index):
         picroot = os.path.join(self.path,'picture')
+        if os.path.exists(picroot) == False:
+            os.mkdir(picroot)
 
         for states,actions,_,_ in tqdm(self.data):
             _,projection,prediction = self.Siam.forward(states,actions)
@@ -66,6 +68,7 @@ class Siamtrain(object):
         plt.cla()
             
     def train(self):
+        self.validate(-1)
         for epoch in range(self.EPOCH):
             self.validate(epoch)
             self.trainanepoch()
