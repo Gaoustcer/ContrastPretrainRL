@@ -57,8 +57,10 @@ class Siamtrain(object):
 
         for states,actions,_,_ in tqdm(self.data):
             _,projection,prediction = self.Siam.forward(states,actions)
-            self.ax.scatter(x = projection[:,0],y = projection[:,1],z = projection[:,2],c = 'r',s = 0.1)
-            self.ax.scatter(x = prediction[:,0],y = prediction[:,1],z = prediction[:,2],c = 'g',s = 0.1)
+            projection = projection.detach().to("cpu").numpy()
+            prediction = prediction.detach().to("cpu").numpy()
+            self.ax.scatter(projection[:,0],projection[:,1],projection[:,2],c = 'r',s = 0.1)
+            self.ax.scatter(prediction[:,0],prediction[:,1],prediction[:,2],c = 'g',s = 0.1)
         picroot = os.path.join(picroot,"{}.png".format(index))
         self.fig.savefig(picroot)
         plt.cla()
