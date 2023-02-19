@@ -5,3 +5,4 @@ logs
 *.out
 *.sh
 ./tutorial
+log

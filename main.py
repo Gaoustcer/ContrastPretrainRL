@@ -1,7 +1,7 @@
 from train.traincontrast import ContrastivePredictiveCoding
 from model.Siammodel import Siam
 import torch
-
+from train.Simatraining import Siamtrain
 def validateSiam():
     adim = 3
     sdim = 11
@@ -15,7 +15,9 @@ def validateSiam():
     print(pred.shape)
 
 if __name__ == "__main__":
-    validateSiam()
+    # validateSiam()
+    trainagent = Siamtrain()
+    trainagent.train()
 # if __name__ == "__main__":
 #     tau = 0.07
 #     embeddingdim = 3

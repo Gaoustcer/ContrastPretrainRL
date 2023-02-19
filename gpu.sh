@@ -83,7 +83,7 @@ echo "Use GPU ${CUDA_VISIBLE_DEVICES}"                              # which gpus
 sleep 10s
 echo "Hello world"
 nvidia-smi
-python3 dataset.py
-# python main.py
+# python3 dataset.py
+python main.py
 #- End
 echo "Job end at $(date "+%Y-%m-%d %H:%M:%S")"
