@@ -16,7 +16,7 @@ class MLPblock(nn.Module):
 
 def MLPinit(layer:nn.Linear):
     if type(layer) == nn.Linear:
-        nn.init.kaiming_uniform_(layer.weight,a = -0.1,b = 0.1)
+        nn.init.uniform_(layer.weight,a = -0.1,b = 0.1)
 
 class MultiMLPblock(nn.Module):
     def __init__(self,input_dim,output_dim,middle_neurons:list) -> None:
