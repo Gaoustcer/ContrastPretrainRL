@@ -69,6 +69,7 @@ class Trajdataset(Dataset):
                  device = "cuda",
                  comparewithintraj = False):
         self.trajcompare = comparewithintraj
+        self.samplelength = samplelength
         with open(path,"rb") as fp:
             data = pickle.load(fp)
         keys = ['observations','actions']

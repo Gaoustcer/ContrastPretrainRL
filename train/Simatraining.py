@@ -27,6 +27,7 @@ class Siamtrain(object):
         '''
         self.EPOCH = EPOCH
         self.env = gym.make(envname)
+        dataset = Trajdataset(comparewithintraj = True,device = device)
         adim = len(self.env.action_space.sample())
         sdim = len(self.env.observation_space.sample()) 
         self.Siam = Siam(actiondim=adim,
@@ -34,9 +35,10 @@ class Siamtrain(object):
                          embeddim = embeddim,
                          nhead = nhead,
                          transformerembed = transformerembed,
-                         transformerforwarddim = transformerforwarddim).cuda()        
+                         transformerforwarddim = transformerforwarddim,
+                         sequencelength = dataset.samplelength).cuda()        
         self.optimizer = Adam(self.Siam.parameters(),lr = lr)
-        dataset = Trajdataset(comparewithintraj = True,device = device)
+        
         self.data = DataLoader(dataset,batch_size = Batchsize)
         self.path = path
         self.writer = SummaryWriter(self.path)
