@@ -14,7 +14,13 @@ def validateSiam():
     print(proj.shape)
     print(pred.shape)
 
-if __name__ == "__main__":
+def parameter():
+    Siaminstance = Siam(actiondim=3,statedim=3)
+    for parameter in Siaminstance.parameters():
+        print(parameter)
+    print(Siaminstance)
+
+def trainSiam():
     # validateSiam()
     embeddim = 3
     nhead = 8
@@ -23,6 +29,9 @@ if __name__ == "__main__":
     path = f'./log/Siam_nhead={nhead}_embeddim={embeddim}_transformerembed={transformerembed}_transformerembeddim={transformerembeddim}initnormal_layer_embedding'
     trainagent = Siamtrain(path = path,embeddim = embeddim,nhead = nhead,transformerembed = transformerembed,transformerforwarddim = transformerembeddim)
     trainagent.train()
+
+if __name__ == "__main__":
+    parameter()
 # if __name__ == "__main__":
 #     tau = 0.07
 #     embeddingdim = 3
